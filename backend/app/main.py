@@ -56,3 +56,35 @@ def create_event(
             status_code=500,
             detail="Failed to save security event."
         ) from exc 
+
+@app.get(
+        "/api/v1/events",
+        response_model=list[SecurityEventResponse],
+        tags=["Security Events"],
+    )
+def list_events(db: Session= Depends(get_db)):
+        """Retrieve all stored security events."""
+        return (
+            db.query(models.SecurityEventModel)
+            .order_by(models.SecurityEventModel.id.desc())
+            .all()
+        )
+
+@app.get(
+     "/api/v1/events/{event_id}",
+     response_model=SecurityEventResponse,tags=["Security Events"],
+)
+
+def get_event(event_id: int, db:Session = Depends(get_db)):
+     """Retrieve one security event by its ID."""
+     db_event = (
+          db.query(models.SecurityEventModel)
+          .filter(models.SecurityEventModel.id == event_id)
+          .first()
+     )
+
+     if db_event is None:
+          raise HTTPException(
+               status_code=404,
+                        detail=f"Security event with ID {event_id} not found."         )
+     return db_event
