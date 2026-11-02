@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database.connection import Base, engine, get_db
 from app.database import models
 from app.schemas.event import SecurityEventCreate, SecurityEventResponse
+from app.api.routes.alerts import router as alerts_router
 
 app = FastAPI(
     title="AI-Assisted Securirty Operations Center API",
@@ -15,6 +16,11 @@ app = FastAPI(
 )
 
 Base.metadata.create_all(bind=engine)
+
+app.include_router(
+     alerts_router,
+     prefix = "/api/v1/alerts",
+)
 
 @app.get("/api/v1/health", tags =["Health"])
 def health_check():

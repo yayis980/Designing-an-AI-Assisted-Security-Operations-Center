@@ -15,7 +15,7 @@ def test_health_check():
 
 def test_create_event():
     response = client.post(
-        "api/v1/events",
+        "/api/v1/events",
         json={
             "rule_id": "5710",
             "description": "Multiple failed login attempts",
@@ -60,3 +60,26 @@ def test_get_missing_event():
     response = client.get("/api/v1/events/999999999")
 
     assert response.status_code == 404
+
+def test_ingest_wazuh_alert():
+    response = client.post(
+        "/api/v1/alerts/wazuh",
+        json={
+            "timestamp": "2026-11-01T10:30:00Z",
+            "rule": {
+                "id": "5710",
+                "description": "Multiple failed login attempts",
+                "level": 8,
+            },
+            "data": {
+                "srcip": "192.168.1.50"
+            },
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["rule_id"] == "5710"
+    assert response.json()["description"] == "Multiple failed login attempts"
+    assert response.json()["severity"] == 8
+    assert response.json()["source_ip"] == "192.168.1.50"
+    assert "id" in response.json()
