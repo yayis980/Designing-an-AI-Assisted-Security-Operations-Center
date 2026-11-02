@@ -1,96 +1,44 @@
-from fastapi import Depends, FastAPI, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
 
-from app.database.connection import Base, engine, get_db
+from app.database.connection import Base, engine
 from app.database import models
-from app.schemas.event import SecurityEventCreate, SecurityEventResponse
 from app.api.routes.alerts import router as alerts_router
+from app.api.routes.events import router as events_router
 
 app = FastAPI(
-    title="AI-Assisted Securirty Operations Center API",
+    title="AI-Assisted Security Operations Center API",
     description=(
-        "Backend API for security ingenstion, "
+        "Backend API for security event ingestion, "
         "processing, and analysis."
     ),
-    version="1.0.0"
+    version="1.0.0",
 )
 
 Base.metadata.create_all(bind=engine)
 
 app.include_router(
-     alerts_router,
-     prefix = "/api/v1/alerts",
+    alerts_router,
+    prefix="/api/v1/alerts",
 )
 
-@app.get("/api/v1/health", tags =["Health"])
+app.include_router(
+    events_router,
+    prefix="/api/v1/events",
+)
+
+
+@app.get("/", tags=["Home"])
+def root():
+    return {
+        "message": "Welcome to the AI-Assisted Security Operations Center API",
+        "docs": "/docs",
+        "status": "online",
+    }
+
+
+@app.get("/api/v1/health", tags=["Health"])
 def health_check():
     return {
         "status": "healthy",
         "service": "soc-backend",
     }
-
-@app.post(
-    "/api/v1/events",
-    response_model=SecurityEventResponse,
-    status_code=201,
-    tags=["Security Events"],
-)
-
-def create_event(
-    event: SecurityEventCreate,
-    db: Session = Depends(get_db),
-):
-
-    db_event = models.SecurityEventModel(
-        timestamp= event.timestamp,
-        rule_id=event.rule_id,
-        description=event.description, 
-        severity=event.severity,
-        source_ip=event.source_ip, 
-        raw_event=event.raw_event,  
-
-    )
-
-    try:
-        db.add(db_event)
-        db.commit()
-        db.refresh(db_event)
-        return db_event
-    except Exception as exc:
-        db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to save security event."
-        ) from exc 
-
-@app.get(
-        "/api/v1/events",
-        response_model=list[SecurityEventResponse],
-        tags=["Security Events"],
-    )
-def list_events(db: Session= Depends(get_db)):
-        """Retrieve all stored security events."""
-        return (
-            db.query(models.SecurityEventModel)
-            .order_by(models.SecurityEventModel.id.desc())
-            .all()
-        )
-
-@app.get(
-     "/api/v1/events/{event_id}",
-     response_model=SecurityEventResponse,tags=["Security Events"],
-)
-
-def get_event(event_id: int, db:Session = Depends(get_db)):
-     """Retrieve one security event by its ID."""
-     db_event = (
-          db.query(models.SecurityEventModel)
-          .filter(models.SecurityEventModel.id == event_id)
-          .first()
-     )
-
-     if db_event is None:
-          raise HTTPException(
-               status_code=404,
-                        detail=f"Security event with ID {event_id} not found."         )
-     return db_event
