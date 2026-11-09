@@ -1,0 +1,12 @@
+#API keys environment variables 
+.env
+.env.*
+!.env.example
+
+#Python
+__pycache__/
+*.pyc
+.venv/
+
+#VS Code local history
+.history/
