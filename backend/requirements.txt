@@ -7,3 +7,4 @@ pytest
 httpx
 scikit-learn
 joblib
+google-genai
