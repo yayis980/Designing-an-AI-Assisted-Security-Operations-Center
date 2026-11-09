@@ -10,3 +10,6 @@ __pycache__/
 
 #VS Code local history
 .history/
+
+#Local VS Code configuration
+.vscode/
