@@ -14,7 +14,7 @@ def parse_wazuh_alert(alert: dict[str, Any]) -> SecurityEventCreate:
 
     if rule_id is None or description is None: 
         raise ValueError(
-            "Wazuh alert must contian a rule ID and description."
+            "Wazuh alert must contain a rule ID and description."
         )
     event_data = {
         "rule_id": str(rule_id),
