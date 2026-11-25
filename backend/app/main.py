@@ -2,8 +2,11 @@ from fastapi import FastAPI
 
 from app.database.connection import Base, engine
 from app.database import models
+from app.database import scanner_models 
 from app.api.routes.alerts import router as alerts_router
 from app.api.routes.events import router as events_router
+from app.api.routes.scanner import router as scanner_router 
+
 
 app = FastAPI(
     title="AI-Assisted Security Operations Center API",
@@ -24,6 +27,11 @@ app.include_router(
 app.include_router(
     events_router,
     prefix="/api/v1/events",
+)
+
+app.include_router(
+    scanner_router,
+    prefix="/api/v1/scanner",
 )
 
 
