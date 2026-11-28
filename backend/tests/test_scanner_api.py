@@ -192,4 +192,42 @@ def test_gemini_failure(
     )
 
     assert finding_response.status_code == 200
-    
+
+
+
+
+@pytest.mark.parametrize(
+    "invalid_fields",
+    [
+        {"title": ""},
+        {"description": "X" * 4001},
+        {"evidence": ["Test"] * 21},
+        {"evidence": ["X" * 1001]},
+    ]
+)
+def test_invalid_scanner_finding(
+    client,
+    sample_finding,
+    invalid_fields,
+):
+    """Reject invalid MCP scanner findings."""
+
+    invalid_finding = {
+        **sample_finding,
+        **invalid_fields,
+    }
+
+    response = client.post(
+        "/api/v1/scanner/findings",
+        json=invalid_finding,
+    )
+
+    assert response.status_code == 422
+
+    # Invalid findings must not be saved
+    stored = client.get(
+        "/api/v1/scanner/findings"
+    )
+
+    assert stored.status_code == 200
+    assert stored.json() == []

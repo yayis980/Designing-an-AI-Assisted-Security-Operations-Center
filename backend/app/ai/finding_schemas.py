@@ -1,23 +1,59 @@
-from pydantic import BaseModel, Field
+from typing import Annotated
+
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ScannerFinding(BaseModel):
 
-    finding_id: str
+    model_config = ConfigDict(
+        str_strip_whitespace=True
+    )
 
-    source: str
+    finding_id: str = Field(
+        min_length=1,
+        max_length=100
+    )
 
-    target: str
+    source: str = Field(
+        min_length=1,
+        max_length=100
+    )
 
-    tool_name: str | None = None
+    target: str = Field(
+        min_length=1,
+        max_length=200
+    )
 
-    category: str
+    tool_name: str | None = Field(
+        default=None,
+        max_length=200
+    )
 
-    title: str
+    category: str = Field(
+        min_length=1,
+        max_length=100
+    )
 
-    description: str
+    title: str = Field(
+        min_length=1,
+        max_length=200
+    )
+
+    description: str = Field(
+        min_length=1,
+        max_length=4000
+    )
 
     scanner_severity: str | int | None = None
 
-    evidence: list[str] = Field(default_factory=list)
+    evidence: list[
+        Annotated[
+            str,
+            Field(min_length=1, max_length=1000)
+        ]
+    ] = Field(
+        default_factory=list,
+        max_length=20
+    )
+
     
