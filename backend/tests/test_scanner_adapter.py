@@ -66,3 +66,53 @@ def test_scanner_adapter(monkeypatch):
     assert sent_finding["scanner_severity"] == "high"
     assert len(sent_finding["evidence"]) == 1
     
+
+def test_sensitive_data_not_sent_to_gemini(monkeypatch):
+
+    finding = ScannerFinding(
+        finding_id="MCP-SECRET-001",
+        source="mcp_runtime",
+        target="test-server",
+        category="credential_exposure",
+        title="Exposed credentials",
+        description="Found password=SuperSecret123",
+        evidence=[
+            "Authorization: Bearer abcdefghijklmnopqrstuvwxyz",
+            "AWS key AKIA1234567890ABCDEF",
+            '{"api_key": "my-secret-api-key"}',
+        ],
+    )
+
+    expected_analysis = SecurityAnalysis(
+        event_description="Exposed credentials",
+        threat_type="credential_exposure",
+        severity="high",
+        summary="Sensitive credentials were detected.",
+        recommended_actions=["Rotate exposed credentials"],
+    )
+
+    mock_analyzer = Mock(return_value=expected_analysis)
+
+    monkeypatch.setattr(
+        scanner_adapter,
+        "analyze_finding",
+        mock_analyzer,
+    )
+
+    scanner_adapter.analyze_scanner_finding(finding)
+
+    sent_text = mock_analyzer.call_args.args[0]
+
+    # Secrets must not reach the Gemini interface
+    assert "SuperSecret123" not in sent_text
+    assert "abcdefghijklmnopqrstuvwxyz" not in sent_text
+    assert "AKIA1234567890ABCDEF" not in sent_text
+    assert "my-secret-api-key" not in sent_text
+
+    # Verify replacement occurred
+    assert "[REDACTED]" in sent_text
+    assert "[REDACTED TOKEN]" in sent_text
+
+    # The original finding must not change
+    assert "SuperSecret123" in finding.description
+    

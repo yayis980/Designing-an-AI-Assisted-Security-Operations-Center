@@ -1,20 +1,23 @@
+import json
+
 from .finding_schemas import ScannerFinding
+from .data_sanitizer import sanitize_finding
 from .llm_analyzer import analyze_finding
 from .llm_schemas import SecurityAnalysis
-
 
 def analyze_scanner_finding(
     finding: ScannerFinding
 ) -> SecurityAnalysis:
     """
-    Analyze a security finding from an MCP scanner.
-
-    Converts structured scanner findings into JSON
-    and sends them to the Gemini analyzer.
+    Sanitize scanner findings before sending to Gemini.
     """
 
-    # Convert scanner finding to JSON
-    finding_json = finding.model_dump_json(exclude_none=True)
+    # Create a sanitized copy
+    sanitized = sanitize_finding(finding)
 
-    # Send finding to Gemini
+    # Convert sanitized data to JSON
+    finding_json = json.dumps(sanitized)
+
+    # Send only sanitized data to Gemini
     return analyze_finding(finding_json)
+
