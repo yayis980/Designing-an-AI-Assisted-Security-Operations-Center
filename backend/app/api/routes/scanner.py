@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from app.api.security import require_scanner_api_key
+
 
 from app.database.connection import get_db
 from app.database.scanner_models import (
@@ -20,7 +22,11 @@ from app.schemas.scanner import (
 )
 
 
-router = APIRouter(tags=["MCP Scanner"])
+router = APIRouter(
+    tags=["MCP Scanner"],
+    dependencies=[Depends(require_scanner_api_key)],
+)
+
 
 
 @router.post(

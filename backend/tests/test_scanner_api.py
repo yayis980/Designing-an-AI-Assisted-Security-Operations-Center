@@ -15,8 +15,13 @@ from app.ai import scanner_persistence
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
     """Create an isolated test database and API client."""
+
+    monkeypatch.setenv(
+        "SOC_API_KEY",
+        "test-only-scanner-api-key",
+    )
 
     engine = create_engine(
         "sqlite://",
@@ -40,7 +45,13 @@ def client():
 
     try:
         with TestClient(app) as test_client:
+
+            test_client.headers["X-API-Key"] = (
+                "test-only-scanner-api-key"
+            )
+
             yield test_client
+
     finally:
         app.dependency_overrides.pop(get_db, None)
         engine.dispose()
@@ -231,3 +242,47 @@ def test_invalid_scanner_finding(
 
     assert stored.status_code == 200
     assert stored.json() == []
+
+
+def test_missing_api_key(client, sample_finding):
+    """Requests without an API key must be rejected."""
+
+    client.headers.pop("X-API-Key", None)
+
+    response = client.post(
+        "/api/v1/scanner/findings",
+        json=sample_finding,
+    )
+
+    assert response.status_code == 401
+
+    # Verify unauthorized findings were not saved
+    client.headers["X-API-Key"] = "test-only-scanner-api-key"
+
+    stored = client.get("/api/v1/scanner/findings")
+
+    assert stored.status_code == 200
+    assert stored.json() == []
+
+def test_invalid_api_key(client):
+    """Requests with incorrect API keys must be rejected."""
+
+    response = client.get(
+        "/api/v1/scanner/findings",
+        headers={"X-API-Key": "wrong-key"},
+    )
+
+    assert response.status_code == 401
+
+def test_missing_server_api_key(client, monkeypatch):
+    """Authentication must fail closed when unconfigured."""
+
+    monkeypatch.delenv("SOC_API_KEY", raising=False)
+
+    response = client.get(
+        "/api/v1/scanner/findings"
+    )
+
+    assert response.status_code == 503
+
+    
