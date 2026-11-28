@@ -24,19 +24,30 @@ def analyze_finding(finding: str) -> SecurityAnalysis:
     # Initialize Gemini client
     client = genai.Client(api_key=api_key)
 
-    # Send security finding to Gemini
     response = client.models.generate_content(
         model="gemini-3.5-flash-lite",
 
         contents=f"Analyze this security finding:\n{finding}",
 
-        config=types.GenerateContentConfig(
-            system_instruction=SOC_ANALYST_SYSTEM_PROMPT,
-            temperature=0.2,
-            response_mime_type="application/json",
-            response_schema=SecurityAnalysis,
+    # Send security finding to Gemini
+    config=types.GenerateContentConfig(
+        system_instruction=SOC_ANALYST_SYSTEM_PROMPT,
+        temperature=0.2,
+        response_mime_type="application/json",
+        response_schema=SecurityAnalysis,
+
+        # Retry temporary Gemini API failures
+        http_options=types.HttpOptions(
+            retry_options=types.HttpRetryOptions(
+                initial_delay=1.0,
+                attempts=3,
+                http_status_codes=[503],
+            ),
+            timeout=30000,
         ),
-    )
+    ),
+)
+
 
     if not response.text:
         raise ValueError("Gemini returned an empty response.")
