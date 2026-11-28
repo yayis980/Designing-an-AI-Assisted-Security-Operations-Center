@@ -204,6 +204,19 @@ def test_gemini_failure(
 
     assert finding_response.status_code == 200
 
+    
+    # Verify the failed analysis was saved
+    analyses_response = client.get(
+        "/api/v1/scanner/findings/1/analyses"
+    )
+
+    assert analyses_response.status_code == 200
+
+    analyses = analyses_response.json()
+
+    assert len(analyses) == 1
+    assert analyses[0]["status"] == "failed"
+    assert analyses[0]["finding_db_id"] == 1
 
 
 
@@ -285,4 +298,3 @@ def test_missing_server_api_key(client, monkeypatch):
 
     assert response.status_code == 503
 
-    
